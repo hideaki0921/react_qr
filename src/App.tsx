@@ -1,26 +1,91 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { FC, useEffect, useRef, useState } from "react"
+import { BrowserQRCodeReader, IScannerControls } from "@zxing/browser"
+import { Result } from "@zxing/library"
+// import {
+//   Box,
+//   ChakraProvider,
+//   Container,
+//   Fade,
+//   Flex,
+//   Heading,
+//   Table,
+//   Tbody,
+//   Td,
+//   Tr
+// } from "@chakra-ui/react"
 
-function App() {
+const QrCodeReader: FC<{ onReadQRCode: (text: Result) => void }> = ({
+  onReadQRCode
+}) => {
+  const controlsRef = useRef<IScannerControls | null>()
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => {
+    if (!videoRef.current) {
+      return
+    }
+    const codeReader = new BrowserQRCodeReader()
+    codeReader.decodeFromVideoDevice(
+      undefined,
+      videoRef.current,
+      (result, error, controls) => {
+        if (error) {
+          return
+        }
+        if (result) {
+          onReadQRCode(result)
+        }
+        controlsRef.current = controls
+      }
+    )
+    return () => {
+      if (!controlsRef.current) {
+        return
+      }
+
+      controlsRef.current.stop()
+      controlsRef.current = null
+    }
+  }, [onReadQRCode])
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+    <video
+      style={{ maxWidth: "100%", maxHeight: "100%", height: "100%" }}
+      ref={videoRef}
+    />
+  )
 }
 
-export default App;
+// const QrCodeResult: FC<{ qrCodes: string[] }> = ({ qrCodes }) => {
+//   return (
+//         {qrCodes.map((qr, i) => (
+//           <div key={i}>
+//               <div>{qr}</div>
+//           </div>
+//         ))}
+//   )
+// }
+
+const QrApp = () => {
+  const [qrCodes, setQrCodes] = useState<string[]>([])
+
+  return (
+    <>
+            <QrCodeReader
+              onReadQRCode={(result) => {
+                setQrCodes((codes) => {
+                  return [result.getText(), ...codes]
+                })
+              }}
+            />
+            {/* <QrCodeResult qrCodes={qrCodes} /> */}
+            <div>{qrCodes}</div>
+    </>
+  )
+}
+
+export default function Home() {
+  return (
+      <QrApp />
+  )
+}
